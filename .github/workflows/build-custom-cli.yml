@@ -1,0 +1,38 @@
+name: Build custom OpenCode CLI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-26.04
+            target: linux-x64
+            artifact: opencode-custom-linux-x64
+          - runner: windows-latest
+            target: windows-x64
+            artifact: opencode-custom-windows-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - name: Build CLI
+        working-directory: packages/cli
+        env:
+          OPENCODE_TARGET: ${{ matrix.target }}
+        run: bun run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: packages/cli/dist/cli-${{ matrix.target }}/bin/
+          retention-days: 7
+          if-no-files-found: error
