@@ -36,6 +36,8 @@ export function connectionEnv(connection: {
 }): Record<string, string> {
   const env: Record<string, string> = {}
   const settings = connection.settings ?? {}
+  // Set the directory on this Claude subprocess, not process.env: the server may
+  // handle other providers and sessions concurrently. Expand ~/ for Claude Code.
   if (typeof settings.configDir === "string" && settings.configDir.trim()) {
     const dir = settings.configDir.trim()
     env.CLAUDE_CONFIG_DIR = path.resolve(dir.startsWith("~/") ? path.join(os.homedir(), dir.slice(2)) : dir)
