@@ -2,6 +2,8 @@ export * as ClaudeQueryOptions from "./query-options.js"
 
 import type { LanguageModelV3FunctionTool } from "@ai-sdk/provider"
 import type { Options } from "@anthropic-ai/claude-agent-sdk"
+import os from "node:os"
+import path from "node:path"
 import { ToolHooks } from "../tools/hooks.js"
 import type { PendingTools } from "../tools/pending.js"
 import { ToolServer } from "../tools/server.js"
@@ -34,6 +36,10 @@ export function connectionEnv(connection: {
 }): Record<string, string> {
   const env: Record<string, string> = {}
   const settings = connection.settings ?? {}
+  if (typeof settings.configDir === "string" && settings.configDir.trim()) {
+    const dir = settings.configDir.trim()
+    env.CLAUDE_CONFIG_DIR = path.resolve(dir.startsWith("~/") ? path.join(os.homedir(), dir.slice(2)) : dir)
+  }
   if (typeof settings.baseURL === "string") env.ANTHROPIC_BASE_URL = settings.baseURL
   if (typeof settings.apiKey === "string") env.ANTHROPIC_API_KEY = settings.apiKey
   if (typeof settings.authToken === "string") env.ANTHROPIC_AUTH_TOKEN = settings.authToken
