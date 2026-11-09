@@ -346,6 +346,9 @@ export function registry() {
     ) {
       const boundary = SyncDecision.boundary(request.prompt, source)
       if (!source || !boundary) return 0
+      // SDK transcript helpers use the server environment, not the subprocess profile.
+      // A custom profile cannot safely fork through these helpers; rebuild from OpenCode history.
+      if (request.connection?.CLAUDE_CONFIG_DIR || source.configDir) return 0
       // Validate catch-up input before creating a forked transcript on disk.
       yield* attemptSync(() => CatchUp.content(request.prompt, boundary.start))
       const fork = yield* attempt(() => input.io.fork(source.claudeSessionID, boundary.messageID))
@@ -386,6 +389,17 @@ export function registry() {
       }
 
       if (!entry.record) entry.record = yield* records.get(request.sessionID)
+      // Session helpers resolve transcripts from the server environment. A profile switch
+      // must never resume the previous profile's Claude session. After an idle timeout,
+      // custom profiles rebuild from OpenCode's authoritative conversation history.
+      if (entry.record && (
+        entry.record.configDir !== request.connection?.CLAUDE_CONFIG_DIR ||
+        (request.connection?.CLAUDE_CONFIG_DIR && !entry.process)
+      )) {
+        yield* stop(entry)
+        entry.record = undefined
+        return { start: 0, continuation: undefined }
+      }
       const decision = SyncDecision.decide(request.prompt, entry.record)
       const start = yield* Effect.gen(function* () {
         if (decision.kind === "fresh" || decision.kind === "changed") {
