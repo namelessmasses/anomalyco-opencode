@@ -6,6 +6,7 @@ const Checkpoint = Schema.Struct({ hash: Schema.String, claudeMessageID: Schema.
 export type Checkpoint = typeof Checkpoint.Type
 const Record = Schema.Struct({
   claudeSessionID: Schema.String,
+  configDir: Schema.optional(Schema.String),
   history: Schema.optional(Schema.Array(Checkpoint)),
   // After cancellation, Claude owns the partial reply; history ends at the input it received.
   interrupted: Schema.optional(Schema.Boolean),
