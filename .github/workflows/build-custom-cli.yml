@@ -1,12 +1,32 @@
 name: Build custom OpenCode CLI
 
 on:
+  push:
+    branches: [feat/claude-multi-account]
+    paths:
+      - '.github/workflows/build-custom-cli.yml'
+      - 'packages/core/src/plugin/provider/claude-agent/**'
+      - 'packages/core/test/plugin/provider/claude-agent/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  validate:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: bun install --frozen-lockfile
+      - name: Core typecheck
+        working-directory: packages/core
+        run: bun typecheck
+      - name: Claude Agent tests
+        working-directory: packages/core
+        run: bun test test/plugin/provider/claude-agent
   cli:
     strategy:
       fail-fast: false
@@ -16,7 +36,7 @@ jobs:
             target: linux-x64
             artifact: opencode-custom-linux-x64
           - runner: windows-latest
-            target: windows-x64
+            target: win32-x64
             artifact: opencode-custom-windows-x64
     runs-on: ${{ matrix.runner }}
     steps:
