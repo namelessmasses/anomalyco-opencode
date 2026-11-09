@@ -6,6 +6,8 @@ const Checkpoint = Schema.Struct({ hash: Schema.String, claudeMessageID: Schema.
 export type Checkpoint = typeof Checkpoint.Type
 const Record = Schema.Struct({
   claudeSessionID: Schema.String,
+  // Optional for records created before profile selection existed.
+  // Identifies the Claude Code transcript directory, not the OpenCode conversation.
   configDir: Schema.optional(Schema.String),
   history: Schema.optional(Schema.Array(Checkpoint)),
   // After cancellation, Claude owns the partial reply; history ends at the input it received.
