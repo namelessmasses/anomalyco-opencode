@@ -308,7 +308,7 @@ export function registry() {
                 toolMessages,
               })
             : undefined
-        entry.record = { claudeSessionID: session.id, history, interrupted: interrupted && !completed }
+        entry.record = { claudeSessionID: session.id, configDir: request.connection?.CLAUDE_CONFIG_DIR, history, interrupted: interrupted && !completed }
         yield* records.set(request.sessionID, entry.record)
       })
 
@@ -354,7 +354,7 @@ export function registry() {
         hash: checkpoint.hash,
         claudeMessageID: checkpoint.claudeMessageID ? fork.messages.get(checkpoint.claudeMessageID) : undefined,
       }))
-      entry.record = { claudeSessionID: fork.sessionID, history }
+      entry.record = { claudeSessionID: fork.sessionID, configDir: request.connection?.CLAUDE_CONFIG_DIR, history }
       return boundary.start
     }, Effect.uninterruptible)
 
