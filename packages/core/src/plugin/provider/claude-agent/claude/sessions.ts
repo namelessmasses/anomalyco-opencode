@@ -308,6 +308,8 @@ export function registry() {
                 toolMessages,
               })
             : undefined
+        // Persist the owning profile so a later account switch cannot resume this transcript
+        // under a different Claude login. Legacy records have no configDir.
         entry.record = { claudeSessionID: session.id, configDir: request.connection?.CLAUDE_CONFIG_DIR, history, interrupted: interrupted && !completed }
         yield* records.set(request.sessionID, entry.record)
       })
