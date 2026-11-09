@@ -7,6 +7,7 @@ import { ProviderRefresh } from "../refresh.js"
 import { ClaudeProbe } from "./claude/probe.js"
 import type { ClaudeStatus } from "./claude/status.js"
 import { ClaudeProvider } from "./provider.js"
+import { credentialSettings, metadataSettings } from "../credential-settings.js"
 
 export const METHOD_ID = "claude-login"
 
@@ -24,6 +25,39 @@ export const register = Effect.fn("ClaudeIntegration.register")(function* (
       integrationID: ClaudeProvider.ID,
       method: { id: METHOD_ID, type: "external", label: "Claude Code login (claude auth login)" },
     })
+    editor.method.update({
+      integrationID: ClaudeProvider.ID,
+      method: {
+        id: "claude-profile",
+        type: "external",
+        label: "Claude Code profile (config directory)",
+        form: [{
+          key: "configDir",
+          type: "string",
+          title: "Claude configuration directory",
+          description: "Authenticate separately with CLAUDE_CONFIG_DIR=<path> claude auth login.",
+          required: true,
+          minLength: 1,
+          pattern: "\\S",
+          placeholder: "Absolute path to Claude profile",
+          custom: true,
+        }],
+      },
+    })
+  })
+
+  const login = yield* credentialSettings(ctx, ClaudeProvider.ID, (value) =>
+    value.type === "external" && value.methodID === "claude-profile"
+      ? metadataSettings(value.metadata, ["configDir"])
+      : {},
+  )
+  yield* ctx.provider.transform((editor) => {
+    for (const item of editor.list()) {
+      if (item.provider.id !== ClaudeProvider.ID) continue
+      editor.update(item.provider.id, (provider) => {
+        provider.settings = { ...provider.settings, ...login.settings }
+      })
+    }
   })
 
   yield* SubscriptionRef.changes(status.state).pipe(
