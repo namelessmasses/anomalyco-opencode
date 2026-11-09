@@ -25,6 +25,8 @@ export const register = Effect.fn("ClaudeIntegration.register")(function* (
       integrationID: ClaudeProvider.ID,
       method: { id: METHOD_ID, type: "external", label: "Claude Code login (claude auth login)" },
     })
+    // A named Claude login is a configuration directory, not an OAuth token stored by OpenCode.
+    // The external method keeps account registration in the existing /connect credential UI.
     editor.method.update({
       integrationID: ClaudeProvider.ID,
       method: {
@@ -46,11 +48,14 @@ export const register = Effect.fn("ClaudeIntegration.register")(function* (
     })
   })
 
+  // Follow Bedrock's active-credential model: selecting a different saved account
+  // reloads provider settings without restarting the OpenCode service.
   const login = yield* credentialSettings(ctx, ClaudeProvider.ID, (value) =>
     value.type === "external" && value.methodID === "claude-profile"
       ? metadataSettings(value.metadata, ["configDir"])
       : {},
   )
+  // Only the selected profile contributes configDir; other Claude Agent settings remain intact.
   yield* ctx.provider.transform((editor) => {
     for (const item of editor.list()) {
       if (item.provider.id !== ClaudeProvider.ID) continue
