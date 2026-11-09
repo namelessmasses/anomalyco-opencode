@@ -15,6 +15,40 @@ import { Recorder } from "../lib/recorder"
 const first = TestSessions.prompt("Remember the marker COPPER-OTTER. Reply only with that marker.")
 
 describe("Claude sessions", () => {
+  it.effect("switching Claude profiles rebuilds the existing OpenCode conversation", () =>
+    Effect.gen(function* () {
+      const claude = FakeClaude.make([
+        FakeClaude.expectStartup(),
+        FakeClaude.expectTurn(),
+        FakeClaude.expectInterrupt(),
+        FakeClaude.expectStartup(),
+        FakeClaude.expectTurn({ index: 1 }),
+        FakeClaude.expectInterrupt(),
+      ])
+      const test = yield* TestSessions.start(claude)
+      const personal = new ClaudeAgentLanguageModel.Model("haiku", test.model.dependencies, {
+        CLAUDE_CONFIG_DIR: "/accounts/personal",
+      })
+      const work = new ClaudeAgentLanguageModel.Model("haiku", test.model.dependencies, {
+        CLAUDE_CONFIG_DIR: "/accounts/work",
+      })
+      yield* TestSessions.reply(personal, first)
+      expect(TestSessions.text(yield* TestSessions.reply(work, TestSessions.followup()))).toBe("COPPER-OTTER")
+      expect(claude.runs.map((run) => run.env.CLAUDE_CONFIG_DIR)).toEqual([
+        "/accounts/personal",
+        "/accounts/work",
+      ])
+      expect(claude.runs[1]!.args.some((arg) => arg.startsWith("--resume="))).toBe(false)
+      const user = claude.runs[1]!.received.find((message) => message.type === "user")
+      expect(JSON.stringify(user.message.content)).toContain("<conversation-checkpoint>")
+      expect(JSON.stringify(user.message.content)).toContain("COPPER-OTTER")
+      const record = (yield* SessionRecord.make(test.storage).get("session-a"))!
+      expect(record.configDir).toBe("/accounts/work")
+      yield* test.registry.close()
+      claude.check()
+    }),
+  )
+
   it.effect("streams consecutive turns once, on one process, with per-turn usage", () =>
     Effect.gen(function* () {
       const claude = FakeClaude.make([
