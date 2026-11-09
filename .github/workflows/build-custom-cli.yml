@@ -36,7 +36,7 @@ jobs:
             target: linux-x64
             artifact: opencode-custom-linux-x64
           - runner: windows-latest
-            target: win32-x64
+            target: windows-x64
             artifact: opencode-custom-windows-x64
     runs-on: ${{ matrix.runner }}
     steps:
